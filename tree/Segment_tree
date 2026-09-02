@@ -1,0 +1,90 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+class SGTtree {
+    vector<int> seg;
+
+public:
+
+    SGTtree(int n) {
+        seg.resize(4 * n + 1);
+    }
+
+    // Build Segment Tree
+    void build(int node, int low, int high, vector<int>& arr) {
+        if (low == high) {
+            seg[node] = arr[low];
+            return;
+        }
+
+        int mid = (low + high) / 2;
+
+        build(2 * node + 1, low, mid, arr);
+        build(2 * node + 2, mid + 1, high, arr);
+
+        seg[node] = seg[2 * node + 1] + seg[2 * node + 2];
+    }
+
+    // Point Update
+    void update(int node, int low, int high, int ind, int val) {
+        if (low == high) {
+            seg[node] = val;
+            return;
+        }
+
+        int mid = (low + high) / 2;
+
+        if (ind <= mid) {
+            update(2 * node + 1, low, mid, ind, val);
+        }
+        else {
+            update(2 * node + 2, mid + 1, high, ind, val);
+        }
+
+        seg[node] = seg[2 * node + 1] + seg[2 * node + 2];
+    }
+
+    // Range Sum Query
+    int query(int node, int low, int high, int l, int r) {
+        // No overlap
+        if (r < low || high < l) {
+            return 0;
+        }
+
+        // Complete overlap
+        if (l <= low && high <= r) {
+            return seg[node];
+        }
+
+        // Partial overlap
+        int mid = (low + high) / 2;
+
+        int left = query(2 * node + 1, low, mid, l, r);
+        int right = query(2 * node + 2, mid + 1, high, l, r);
+
+        return left + right;
+    }
+};
+
+int main() {
+
+    vector<int> arr = {1, 2, 3, 4, 5};
+
+    int n = arr.size();
+
+    SGTtree st(n);
+
+    // Build
+    st.build(0, 0, n - 1, arr);
+
+    // Query
+    cout << st.query(0, 0, n - 1, 1, 3) << endl;
+
+    // Update arr[2] = 10
+    st.update(0, 0, n - 1, 2, 10);
+
+    // Query after update
+    cout << st.query(0, 0, n - 1, 1, 3) << endl;
+
+    return 0;
+}
