@@ -1,0 +1,201 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+class ST {
+    vector<int> seg;
+    vector<bool> lazy;
+
+public:
+    ST(int n) {
+        seg.resize(4 * n);
+        lazy.resize(4 * n, false);
+    }
+
+    // build the segment tree
+    // seg[ind] stores the number of heads in [low, high]
+    void build(int ind, int low, int high, vector<int>& arr) {
+
+        if (low == high) {
+            seg[ind] = arr[low];
+            return;
+        }
+
+        int mid = (low + high) / 2;
+
+        build(2 * ind + 1, low, mid, arr);
+        build(2 * ind + 2, mid + 1, high, arr);
+
+        // Number of heads in current range
+        // = heads in left + heads in right
+        seg[ind] = seg[2 * ind + 1] + seg[2 * ind + 2];
+    }
+
+    // update the segment tree
+    // Flip all coins in [l, r]
+    void update(int ind, int low, int high, int l, int r) {
+
+        // update of previous remaining update
+        // it is update when traverse the segment tree
+        //
+        // If this node has a pending flip,
+        // apply that flip first.
+        if (lazy[ind]) {
+
+            // If there are N coins and H heads,
+            // after flipping:
+            //
+            // heads = N - H
+            //
+            // Because every head becomes tail
+            // and every tail becomes head.
+            seg[ind] = (high - low + 1) - seg[ind];
+
+            if (low != high) {
+
+                // Child also needs to be flipped.
+                //
+                // XOR is important here.
+                // If child already has a pending flip,
+                // two flips cancel each other.
+                lazy[2 * ind + 1] ^= 1;
+                lazy[2 * ind + 2] ^= 1;
+            }
+
+            // Current pending flip is now applied.
+            lazy[ind] = false;
+        }
+
+        // no overlap we do not do anything
+        // low high l r OR l r low high
+        if (high < l || r < low)
+            return;
+
+        // complete overlap l low high r
+        // flip the complete range
+        if (l <= low && high <= r) {
+
+            // Flip all coins in this segment.
+            //
+            // Number of coins = high-low+1
+            // Number of heads = seg[ind]
+            //
+            // New heads = total coins - old heads
+            seg[ind] = (high - low + 1) - seg[ind];
+
+            if (low != high) {
+
+                // Mark children for a pending flip.
+                //
+                // Use XOR because:
+                // flip + flip = no flip
+                lazy[2 * ind + 1] ^= 1;
+                lazy[2 * ind + 2] ^= 1;
+            }
+
+            return;
+        }
+
+        // partial overlap
+        int mid = (low + high) / 2;
+
+        // Update left child
+        update(2 * ind + 1, low, mid, l, r);
+
+        // Update right child
+        update(2 * ind + 2, mid + 1, high, l, r);
+
+        // After updating both children,
+        // calculate number of heads again.
+        seg[ind] = seg[2 * ind + 1] + seg[2 * ind + 2];
+    }
+
+    // query method
+    // Returns number of heads in [l, r]
+    int query(int ind, int low, int high, int l, int r) {
+
+        // update of previous remaining update
+        // it is update when traverse the segment tree
+        //
+        // Before querying this node,
+        // apply its pending flip.
+        if (lazy[ind]) {
+
+            // Flip the number of heads.
+            seg[ind] = (high - low + 1) - seg[ind];
+
+            if (low != high) {
+
+                // Pass flip operation to children.
+                lazy[2 * ind + 1] ^= 1;
+                lazy[2 * ind + 2] ^= 1;
+            }
+
+            // Current lazy flip is handled.
+            lazy[ind] = false;
+        }
+
+        // no overlap
+        if (high < l || r < low)
+            return 0;
+
+        // complete overlap
+        if (l <= low && high <= r)
+            return seg[ind];
+
+        // partial overlap
+        int mid = (low + high) / 2;
+
+        // Query left child
+        int left = query(2 * ind + 1, low, mid, l, r);
+
+        // Query right child
+        int right = query(2 * ind + 2, mid + 1, high, l, r);
+
+        // Total heads
+        return left + right;
+    }
+};
+
+int main() {
+
+    int n;
+    cin >> n;
+
+    vector<int> a(n);
+
+    for (int i = 0; i < n; i++)
+        cin >> a[i];
+
+    ST st(n);
+
+    // Build segment tree
+    st.build(0, 0, n - 1, a);
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+
+        int type;
+        cin >> type;
+
+        if (type == 1) {
+
+            // Query number of heads in [l, r]
+            int l, r;
+            cin >> l >> r;
+
+            cout << st.query(0, 0, n - 1, l, r) << endl;
+        }
+        else {
+
+            // Flip all coins in [l, r]
+            int l, r;
+            cin >> l >> r;
+
+            st.update(0, 0, n - 1, l, r);
+        }
+    }
+
+    return 0;
+}
